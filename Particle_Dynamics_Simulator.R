@@ -30,8 +30,8 @@ tau=1e-8 # time step; s
 box.dim=1e3 # length/width/height of simulation box; nm
 
 # reaction parameters
-KdN=150e-9 # nucleosome dissociation constant; M
-KdR=2.5e-9 # RNA dissociation constant; M
+KdN=500e-9 # nucleosome dissociation constant; M
+KdR=5e-9 # RNA dissociation constant; M
 E=300 # enzyme concentration; nM
 N=15 # nucleosome concentration; nM
 RpN=8 # RNAs tethered per nucleosome
