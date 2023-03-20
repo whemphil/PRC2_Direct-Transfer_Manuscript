@@ -19,7 +19,7 @@
 ### Environment
 
 rm(list = ls())
-setwd('~/path/to/output/')
+setwd('~/Desktop/')
 
 # Accessory packages
 library(deSolve)
@@ -28,13 +28,13 @@ library(deSolve)
 
 # Model constants
 Kd.N=5.1e-9 # nucleosome dissociation constant, M
-Kd.R=2.3e-9 # decoy dissociation constant, M
-kn1.N=5.3e-4 # nucleosome dissociation rate constant, 1/s
-kn1.R=8.3e-4 # decoy dissociation rate constant, 1/s
-ktheta.N=100 # nucleosome displacement-transfer rate constant, 1/M/s
-ktheta.R=67 # decoy displacement-transfer rate constant, 1/M/s
-ktheta.NN=150 # nucleosome-nucleosome displacement-transfer rate constant, 1/M/s
-kcat=1e0 # enzyme catalysis rate constant, 1/s
+Kd.R=2.3e-9 # RNA dissociation constant, M
+kn1.N=9.1e-5 # nucleosome dissociation rate constant, 1/s
+kn1.R=1.7e-3 # RNA dissociation rate constant, 1/s
+ktheta.N=91 # nucleosome displacement-transfer rate constant, 1/M/s
+ktheta.R=170 # RNA displacement-transfer rate constant, 1/M/s
+ktheta.NN=260 # nucleosome-nucleosome displacement-transfer rate constant, 1/M/s
+kcat=1e-1 # enzyme catalysis rate constant, 1/s
 alpha=rev(c(2000/4^c(0:2),1)) # effective molarity adjustment parameter
 
 # Initial values
@@ -45,7 +45,7 @@ E.T=Kd.N*2^c(-3:1) # total enzyme, M
 ### Extraneous variables
 
 # Simulation parameters
-time=60*60*1 # total reaction time, s
+time=60*60*2 # total reaction time, s
 dt=1e0 # integration time-step, s
 
 # Reaction parameters
@@ -144,7 +144,7 @@ for (p in 1:length(E.T)){
       sim.sim=as.data.frame(ode(y=initials,times=t,func=Equations,parms=constants))
       
       # Clean up results
-      RXN.Results=list('t'=sim.sim$time,'E'=sim.sim$E,'N'=sim.sim$N,'R'=sim.sim$R,'Nm'=sim.sim$Nm,'EN'=sim.sim$EN,'ER'=sim.sim$ER,'ENm'=sim.sim$ENm,'mT'=sim.sim$ENm+sim.sim$Nm)
+      RXN.Results=list('t'=sim.sim$time,'E'=sim.sim$E,'N'=sim.sim$N,'R'=sim.sim$R,'Nm'=sim.sim$Nm,'EN'=sim.sim$EN,'ER'=sim.sim$ER,'ENm'=sim.sim$ENm,'mT'=sim.sim$ENm+sim.sim$Nm,'Vo'=((sim.sim$ENm+sim.sim$Nm)[round(time/dt/20)]-(sim.sim$ENm+sim.sim$Nm)[1])/(time/20),'E.T'=E.T[p],'alpha'=alpha[j],'R.T'=R.T[k])
       SIM.Results[[paste(R.T[k],alpha[j],E.T[p],sep = '_')]]=RXN.Results
       
       # Plot results
@@ -153,10 +153,31 @@ for (p in 1:length(E.T)){
       }
       
     }
-    legend(legend.location,legend = paste0('RNA:Nuc = ',R.T/N.T),col = 1:length(R.T),fill = 1:length(R.T),cex = 1)
-  
+    
+    if(j==1){
+      legend(legend.location,legend = paste0('RNA:Nuc = ',R.T/N.T),col = 1:length(R.T),fill = 1:length(R.T),cex = 0.8)
+    }
+    
   }
   
+}
+
+# Tidy initial velocity data
+Vo.data=data.frame(matrix(nrow=length(SIM.Results),ncol = 4));colnames(Vo.data)=c('R.T','alpha','E.T','Vo')
+for (i in 1:length(SIM.Results)){
+  Vo.data[i,]=c(SIM.Results[[i]]$R.T,SIM.Results[[i]]$alpha,SIM.Results[[i]]$E.T,SIM.Results[[i]]$Vo)
+}
+if (plotting==T){
+  par(mfrow=c(length(E.T),length(R.T)-1),mar=c(4.5,5,2,1))
+}
+for (p in 1:length(E.T)){
+  for (k in 2:length(R.T)){
+    plot(NULL,NULL,main=paste0('R:N = ',2^(k-2),'; E:N = ',E.T[p]/N.T),xlim=range(alpha),ylim=c(-4,4),xlab='α',ylab=substitute(paste('log'[2]*'{V'[0]*''^'RN'*' / V'[0]*''^'N'*'}',sep = '')))
+    for (j in 1:length(alpha)){
+      points(alpha[j],log2(Vo.data$Vo[(Vo.data$R.T==R.T[k] & Vo.data$E.T==E.T[p] & Vo.data$alpha==alpha[j])]/Vo.data$Vo[(Vo.data$R.T==0 & Vo.data$E.T==E.T[p] & Vo.data$alpha==alpha[j])]))
+      abline(h=0,lty='dotted')
+    }
+  }
 }
 
 # Save simulation data

@@ -19,7 +19,7 @@
 ### Environment
 
 rm(list = ls())
-setwd('~/path/to/output/')
+setwd('~/Desktop/')
 
 # Accessory packages
 library(deSolve)
@@ -28,38 +28,38 @@ library(deSolve)
 
 # Model constants
 Kd.N=200e-9 # nucleosome dissociation constant, M
-Kd.R=400e-9 # decoy dissociation constant, M
+Kd.R=400e-9 # RNA dissociation constant, M
 kn1.N=2e-2 # nucleosome dissociation rate constant, 1/s
-kn1.R=4e-2 # decoy dissociation rate constant, 1/s
-kcat=0 # enzyme catalysis rate constant, 1/s
+kn1.R=4e-2 # RNA dissociation rate constant, 1/s
+kcat=1e-1 # enzyme catalysis rate constant, 1/s
 alpha=rev(c(2000/4^c(0:2),1)) # effective molarity adjustment parameter
 beta=c(1/3^c(0:2),0) # RNA effect on catalysis adjustment parameter
-delta1.N=1 # RNA effect on nucleosome on-rate
-delta2.N=1e0 # RNA effect on nucleosome off-rate
-delta1.R=1 # nucleosome effect on RNA on-rate
-delta2.R=1e0 # nucleosome effect on RNA off-rate
+delta1.N=1*1e-1 # RNA effect on nucleosome on-rate
+delta2.N=1*1e5 # RNA effect on nucleosome off-rate
+delta1.R=1*1e-1 # nucleosome effect on RNA on-rate
+delta2.R=1*1e5 # nucleosome effect on RNA off-rate
 
 # Initial values
-N.T=50e-9 # total nucleosome, M
+N.T=5e-9 # total nucleosome, M
 R.T=c(0,N.T*2^c(0:3)) # total RNA, M
-E.T=Kd.N/3^c(-1:3) # total enzyme, M
+E.T=Kd.N/2^c(-1:3) # total enzyme, M
 
 ### Extraneous variables
 
 # Simulation parameters
-time=60*60*1 # total reaction time, s
-dt=0.25 # integration time-step, s
+time=60*60*0.1 # total reaction time, s
+dt=0.05 # integration time-step, s
 
 # Reaction parameters
 pre.equilibrated=F # start from equilibrium binding state before initiating HMTase assay, T/F
 
 # Saved data features
-save.id='null' # identifier for save files
+save.id='SF10' # identifier for save files
 console.output=T # should console summary be output to file, T/F
 plotting=F # should plots be produced, T/F
-plot.type=2 # what should be plotted, 1=catalysis 2=occupancy 3=RNAlessOcupancy
+plot.type=1 # what should be plotted, 1=catalysis 2=occupancy 3=RNAlessOcupancy
 legend.location='topright' # location of plot legend in legend() syntax
-save.plots='yes' # decision to save plots, yes/no
+save.plots='no' # decision to save plots, yes/no
 
 ##########################
 
@@ -85,7 +85,7 @@ Equations=function(t,initials,constants){
     
     dE=kn1.N*(EN + ENm) + kn1.R*ER - E*(k1.N*(N + Nm) + k1.R*R)
     dN=kn1.N*(EN + delta2.N*ENR) - k1.N*N*(E + alpha*delta1.N*ER)
-    dR=kn1.R*(ER + delta2.R*ENR + ENmR) - k1.R*R*(E + alpha*delta1.R*(EN + ENm))
+    dR=kn1.R*(ER + delta2.R*(ENR + ENmR)) - k1.R*R*(E + alpha*delta1.R*(EN + ENm))
     dNm=kn1.N*(ENm + delta2.N*ENmR) - k1.N*Nm*(E + alpha*delta1.N*ER)
     dEN=k1.N*E*N + delta2.R*kn1.R*ENR - EN*(kcat + alpha*delta1.R*k1.R*R + kn1.N)
     dER=k1.R*E*R + delta2.N*kn1.N*(ENR + ENmR) - ER*(kn1.R + alpha*delta1.N*k1.N*(N + Nm))
@@ -172,9 +172,9 @@ for (q in 1:length(E.T)){
       }
       
       # Add legend to plot results
-      if (plotting==T){
+      if (plotting==T & j==1){
         legend(legend.location,legend = paste0('RNA:Nuc = ',round(R.T/N.T,3)),col = 1:length(R.T),fill = 1:length(R.T),cex = 1)
-        if (p==1 & j==1){
+        if (p==1){
           # Panel labels
           title(paste0('E:KdN = ',round(E.T[q]/Kd.N,3)),line = 1.5,outer = TRUE,cex.main = 4)
         }
@@ -195,7 +195,7 @@ for (q in 1:length(E.T)){
 # Generate extrapolated data
 ext.data=data.frame('Vo'=rep(NA,times=length(SIM.Results)),'On.eq'=rep(NA,times=length(SIM.Results)),'Onx.eq'=rep(NA,times=length(SIM.Results)),'rR'=rep(NA,times=length(SIM.Results)),'alpha'=rep(NA,times=length(SIM.Results)),'beta'=rep(NA,times=length(SIM.Results)),'rE'=rep(NA,times=length(SIM.Results)))
 for (i in 1:length(SIM.Results)){
-  ext.data$Vo[i]=SIM.Results[[i]][['mT']][SIM.Results[[i]][['t']]==(time/10)]/time*10
+  ext.data$Vo[i]=SIM.Results[[i]][['mT']][SIM.Results[[i]][['t']]==(time/20)]/time*20
   ext.data$On.eq[i]=SIM.Results[[i]][['On']][SIM.Results[[i]][['t']]==time]
   ext.data$Onx.eq[i]=SIM.Results[[i]][['Onx']][SIM.Results[[i]][['t']]==time]
   ext.data$rR[i]=SIM.Results[[i]][['rR']]
@@ -241,16 +241,30 @@ for (q in 1:length(E.T)){
     }
       
     # Add legend to plot results
-    legend(legend.location,legend = paste0('α = ',round(alpha,3)),col = 1:length(alpha),fill = 1:length(alpha),cex = 1)
-    if (p==1 & q==1){
-      # Panel labels
-      title('All Data',line = 1.5,outer = TRUE,cex.main = 4)
+    if (p==1){
+      legend(legend.location,legend = paste0('α = ',round(alpha,3)),col = 1:length(alpha),fill = 1:length(alpha),cex = 1)
+      if (q==1){
+        # Panel labels
+        title('All Data',line = 1.5,outer = TRUE,cex.main = 4)
+      }
     }
-    
   }
     
 }
-  
+
+# Extra plots
+Vo.data=data.frame('R.T'=ext.data$rR*N.T,'alpha'=ext.data$alpha,'E.T'=ext.data$rE*Kd.N,'Vo'=ext.data$Vo)[ext.data$beta==1,]
+if (plotting==T){
+  par(mfrow=c(length(E.T),length(R.T)-1),mar=c(4.5,5,2,1))
+  for (p in 1:length(E.T)){
+    for (k in 2:length(R.T)){
+      plot(NULL,NULL,main=paste0('R:N = ',2^(k-2),'; E:N = ',round(E.T[p]/N.T)),xlim=range(alpha),ylim=c(-4,4),xlab='α',ylab=substitute(paste('log'[2]*'{V'[0]*''^'RN'*' / V'[0]*''^'N'*'}',sep = '')))
+      points(Vo.data$alpha[(Vo.data$R.T==R.T[k] & signif(Vo.data$E.T,3)==signif(E.T[p],3))],log2(Vo.data$Vo[(Vo.data$R.T==R.T[k] & signif(Vo.data$E.T,3)==signif(E.T[p],3))]/Vo.data$Vo[(Vo.data$R.T==0 & signif(Vo.data$E.T,3)==signif(E.T[p],3))]))
+      abline(h=0,lty='dotted')
+    }
+  }
+}
+
 # Save plots
 if (save.plots=='yes'){
   rstudioapi::savePlotAsImage(paste0(save.id,'_plot-ALL.png'),format ='png',width=1037,height=1000)
@@ -259,7 +273,7 @@ if (save.plots=='yes'){
 
 # Save simulation data
 SIM.Results[['Parameters']]=parameters
-save(SIM.Results,file=paste0(save.id,'.RData'))
+save(list=ls(),file=paste0(save.id,'.RData'))
 if (console.output==T){
   sink(paste0(save.id,'.txt'))
   show(parameters)

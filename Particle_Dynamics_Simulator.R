@@ -20,7 +20,7 @@ rm(list = ls())
 
 ### Environment
 
-setwd('~/path/to/output/')
+setwd('~/Desktop/')
 
 ### Key Variables
 
@@ -30,9 +30,9 @@ tau=1e-8 # time step; s
 box.dim=1e3 # length/width/height of simulation box; nm
 
 # reaction parameters
-KdN=500e-9 # nucleosome dissociation constant; M
-KdR=5e-9 # RNA dissociation constant; M
-E=300 # enzyme concentration; nM
+KdN=100e-9 # nucleosome dissociation constant; M
+KdR=1e0 # RNA dissociation constant; M
+E=250 # enzyme concentration; nM
 N=15 # nucleosome concentration; nM
 RpN=8 # RNAs tethered per nucleosome
 
@@ -48,7 +48,7 @@ p.d=5 # particle diameter; nm
 AvN=6.022e23 # Avogadro's number
 
 # save parameters
-sim.name='SIM-null' # simulation prefix to use for save files
+sim.name='null' # naming prefix to use for simulation save files
 
 # simulation parameters
 start.file=NULL # name of a save file to restart a simulation from
@@ -60,8 +60,7 @@ start.file=NULL # name of a save file to restart a simulation from
 ### Semi-Autonomous Script Functions
 
 # additional parameter calculation
-D.step=sqrt(6*tau*D) # average diffusion radius per time step; nm
-k1=4e-24*pi*D*p.d*AvN # particle association rate constant; 1/M/s
+k1=8e-24*pi*D*p.d*AvN # particle association rate constant; 1/M/s
 kn1N=k1*KdN # nucleosome dissociation rate constant; 1/s
 kn1R=k1*KdR # RNA dissociation rate constant; 1/s
 
@@ -69,11 +68,17 @@ kn1R=k1*KdR # RNA dissociation rate constant; 1/s
 parameters=mget(ls())
 
 # custom functions
-diffuse <- function(cart.coord,mean.walk){
+rdiff <- function(n,D,tau){
+    r=seq(0,20*sqrt(12*D*tau/pi),sqrt(12*D*tau/pi)/1e3)
+    Pr=((1/(12*pi*D*tau))^(1/2))*exp((-r^2)/(12*D*tau))
+    data=sample(r,n,replace = TRUE,prob = Pr)
+    return(data)
+}
+diffuse <- function(cart.coord,D,tau){
   n=length(cart.coord)/3
   theta=runif(n,0,2*pi)
   phi=runif(n,0,2*pi)
-  r=rexp(n,1/mean.walk)
+  r=abs(rnorm(n,0,sqrt(6*D*tau)))
   x=r*sin(phi)*cos(theta)
   y=r*sin(phi)*sin(theta)
   z=r*cos(phi)
@@ -187,7 +192,7 @@ while (loop.i < Inf){
   COUNTER.dt=COUNTER.dt+1
   COUNTER.dtt=COUNTER.dtt+1
   timer=loop.i*tau
-  E.xyz[bind.counter[['E']]==0,]=diffuse(E.xyz[bind.counter[['E']]==0,],D.step)
+  E.xyz[bind.counter[['E']]==0,]=diffuse(E.xyz[bind.counter[['E']]==0,],D,tau)
   E.xyz=wrap.box(box.dim,E.xyz)
   if(round(COUNTER.dt)==round(dt/tau)){
     COUNTER.dt=0
